@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>体・脳・心ログ</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: #f7f7fb;
+      color: #222;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    h1 {
+      margin-bottom: 8px;
+      font-size: 1.8rem;
+    }
+    .description {
+      margin-bottom: 24px;
+      color: #555;
+      line-height: 1.6;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+    }
+    .field {
+      margin-bottom: 24px;
+    }
+    .field:last-child {
+      margin-bottom: 0;
+    }
+    label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .value {
+      font-size: 1.1rem;
+      color: #4b4b9f;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      resize: vertical;
+      font: inherit;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .summary-box {
+      background: #f3f2ff;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .summary-box h2 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .summary-box p {
+      margin: 0;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #2f2f7a;
+    }
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    canvas {
+      width: 100%;
+      max-width: 100%;
+      border: 1px solid #e1e1ef;
+      border-radius: 12px;
+      background: #fcfcff;
+    }
+    .primary {
+      background: #5c63d8;
+      color: white;
+    }
+    .secondary {
+      background: #ececff;
+      color: #3a3f95;
+    }
+    .saved-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .log-item {
+      border: 1px solid #e1e1ef;
+      border-radius: 12px;
+      padding: 14px;
+      background: #fcfcff;
+    }
+    .log-item-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .scores {
+      color: #555;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .memo {
+      white-space: pre-wrap;
+      color: #333;
+    }
+    .empty {
+      color: #666;
+    }
+    @media (max-width: 600px) {
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#5c63d8">
+</head>
+<body>
+  <div class="container">
+    <h1>体・脳・心ログ</h1>
+    <p class="description">
+      今日のコンディションを、体・脳・心の3つで気軽に記録するアプリです。
+      数字を動かすと合計と総合スコアが自動で変わります。
+    </p>
+
+    <section class="card">
+      <div class="field">
+        <label for="bodyRange">体 <span class="value" id="bodyValue">50</span></label>
+        <input id="bodyRange" type="range" min="0" max="100" value="50" />
+      </div>
+
+      <div class="field">
+        <label for="brainRange">脳 <span class="value" id="brainValue">50</span></label>
+        <input id="brainRange" type="range" min="0" max="100" value="50" />
+      </div>
+
+      <div class="field">
+        <label for="heartRange">心 <span class="value" id="heartValue">50</span></label>
+        <input id="heartRange" type="range" min="0" max="100" value="50" />
+      </div>
+
+      <div class="field">
+        <label for="memo">メモ</label>
+        <textarea id="memo" placeholder="たとえば：頭は疲れてるけど、心は静か。午後はゆっくりしたい。"></textarea>
+      </div>
+
+      <div class="summary">
+        <div class="summary-box">
+          <h2>合計</h2>
+          <p id="totalValue">150</p>
+        </div>
+        
+        <div class="summary-box">
+          <h2>総合スコア</h2>
+          <p id="scoreValue">50</p>
+        </div>
+        <div class="summary-box">
+          <h2>ひとこと</h2>
+          <p id="commentValue">ふつう</p>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button class="primary" id="saveButton">この内容を保存</button>
+        <button class="secondary" id="resetButton">入力をリセット</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>総合スコアのグラフ</h2>
+      <canvas id="scoreChart" width="680" height="240"></canvas>
+    </section>
+    <section class="card">
+      <h2>保存したログ</h2>
+      <div id="savedList" class="saved-list">
+        <p class="empty">まだログはありません。</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const bodyRange = document.getElementById('bodyRange');
+    const brainRange = document.getElementById('brainRange');
+    const heartRange = document.getElementById('heartRange');
+    const memo = document.getElementById('memo');
+
+    const bodyValue = document.getElementById('bodyValue');
+    const brainValue = document.getElementById('brainValue');
+    const heartValue = document.getElementById('heartValue');
+    const totalValue = document.getElementById('totalValue');
+    const scoreValue = document.getElementById("scoreValue");
+    const commentValue = document.getElementById('commentValue');
+    const scoreChart = document.getElementById('scoreChart');
+    const savedList = document.getElementById('savedList');
+    const saveButton = document.getElementById('saveButton');
+    const resetButton = document.getElementById('resetButton');
+
+    const STORAGE_KEY = 'mind-body-heart-logs';
+
+    function getComment(score) {
+      if (score >= 80) return 'かなり元気';
+      if (score >= 60) return 'わりと安定';
+      if (score >= 40) return 'ふつう';
+      if (score >= 20) return '少しおつかれ';
+      return 'しっかり休みたい';
+    }
+
+    function updateDisplay() {
+      const body = Number(bodyRange.value);
+      const brain = Number(brainRange.value);
+      const heart = Number(heartRange.value);
+      const total = body + brain + heart;
+      
+      const score = Math.round(
+        Math.cbrt(body * brain * heart)
+        );
+
+      bodyValue.textContent = body;
+      brainValue.textContent = brain;
+      heartValue.textContent = heart;
+      totalValue.textContent = total;
+    
+      scoreValue.textContent = score;
+      commentValue.textContent = getComment(score);
+    }
+
+    function renderChart() {
+      const logs = loadLogs();
+      const ctx = scoreChart.getContext('2d');
+
+      ctx.clearRect(0, 0, scoreChart.width, scoreChart.height);
+
+      if (logs.length === 0) {
+        ctx.font = '16px sans-serif';
+        ctx.fillText('まだログがありません', 24, 120);
+       return;
+      }
+
+      const chartLogs = logs.slice(0, 10).reverse();
+
+      const padding = 32;
+      const chartWidth = scoreChart.width - padding * 2;
+      const chartHeight = scoreChart.height - padding * 2;
+      const barWidth = chartWidth / chartLogs.length * 0.3;
+      const gap = chartWidth / chartLogs.length * 0.4;
+    
+      ctx.font = '12px sans-serif';
+
+      chartLogs.forEach((log, index) => {
+        const x = padding + index * (barWidth + gap) + gap / 2;
+        const barHeight = chartHeight * (log.score / 100);
+        const y = scoreChart.height - padding - barHeight;
+        const min = Math.min(log.body, log.brain, log.heart);
+
+        if (min === log.body) {
+        ctx.fillStyle = "#66BB6A";
+        }
+        else if (min === log.brain) {
+        ctx.fillStyle = "#42A5F5";
+        }
+        else {
+        ctx.fillStyle = "#EC407A";
+        }
+    
+        ctx.fillRect(x, y, barWidth, barHeight);
+        ctx.fillText(log.score, x + barWidth / 4, y - 8);
+      });
+
+      ctx.beginPath();
+      ctx.moveTo(padding, scoreChart.height - padding);
+      ctx.lineTo(scoreChart.width - padding, scoreChart.height - padding);
+      ctx.stroke();
+    }
+    
+    function loadLogs() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function saveLogs(logs) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+    }
+
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('ja-JP');
+    }
+
+    function renderLogs() {
+      const logs = loadLogs();
+
+      if (logs.length === 0) {
+        savedList.innerHTML = '<p class="empty">まだログはありません。</p>';
+        return;
+      }
+
+      savedList.innerHTML = logs.map(log => `
+        <div class="log-item">
+          <div class="log-item-header">
+            <span>${formatDate(log.createdAt)}</span>
+        
+            <span>総合 ${log.score}</span>
+          </div>
+          <div class="scores">
+            体: ${log.body} / 脳: ${log.brain} / 心: ${log.heart}
+          </div>
+          <div class="memo">${log.memo ? escapeHtml(log.memo) : 'メモなし'}</div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function resetForm() {
+      bodyRange.value = 50;
+      brainRange.value = 50;
+      heartRange.value = 50;
+      memo.value = '';
+      updateDisplay();
+    }
+
+    [bodyRange, brainRange, heartRange].forEach(range => {
+      range.addEventListener('input', updateDisplay);
+    });
+
+    saveButton.addEventListener('click', () => {
+      const body = Number(bodyRange.value);
+      const brain = Number(brainRange.value);
+      const heart = Number(heartRange.value);
+      const total = body + brain + heart;
+    
+      const score = Math.round(
+        Math.cbrt(body * brain * heart)
+      );
+
+      const newLog = {
+        createdAt: new Date().toISOString(),
+        body,
+        brain,
+        heart,
+        total,
+    
+        score,
+        memo: memo.value.trim()
+      };
+
+      const logs = loadLogs();
+      logs.unshift(newLog);
+      saveLogs(logs);
+      renderLogs();
+      renderChart();
+    });
+
+    resetButton.addEventListener('click', resetForm);
+
+    updateDisplay();
+    renderLogs();
+    renderChart();
+  </script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js");
+  }
+</script>
+</body>
+</html>

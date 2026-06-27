@@ -1,0 +1,9 @@
+{
+  "name": "体・脳・心ログ",
+  "short_name": "体脳心ログ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#5c63d8",
+  "icons": []
+}
