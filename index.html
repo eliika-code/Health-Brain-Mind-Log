@@ -273,22 +273,23 @@
        return;
       }
 
-      const chartLogs = logs.slice(0, 14).reverse();
-
+      const chartLogs = logs.slice(0, 15).reverse();
+      
       const padding = 32;
       const chartWidth = scoreChart.width - padding * 2;
       const chartHeight = scoreChart.height - padding * 2;
-      const barWidth = chartWidth / chartLogs.length * 0.3;
-      const gap = chartWidth / chartLogs.length * 0.4;
-    
+      
+      const slotWidth = chartWidth / chartLogs.length;
+      const barWidth = slotWidth * 0.3;
+      const gap = slotWidth - barWidth;
       ctx.font = '12px sans-serif';
-
+      
       chartLogs.forEach((log, index) => {
-        const x = padding + index * (barWidth + gap) + gap / 2;
+
+        const x = padding + index * slotWidth + gap / 2;
         const barHeight = chartHeight * (log.score / 100);
         const y = scoreChart.height - padding - barHeight;
         const min = Math.min(log.body, log.brain, log.heart);
-
         if (min === log.body) {
         ctx.fillStyle = "#66BB6A";
         }
