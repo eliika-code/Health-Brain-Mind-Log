@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
@@ -208,6 +208,21 @@
       <canvas id="scoreChart" width="680" height="240"></canvas>
     </section>
     <section class="card">
+      <h2>AIからのコメント</h2>
+
+        <div class="button-row">
+          <button class="primary" id="aiCommentButton">
+          直近のログを見てもらう
+          </button>
+        </div>
+
+        <p id="aiStatus"></p>
+
+        <div id="aiComment" class="memo">
+          まだコメントはありません。
+        </div>
+    </section>
+    <section class="card">
       <h2>保存したログ</h2>
       <div id="savedList" class="saved-list">
         <p class="empty">まだログはありません。</p>
@@ -231,6 +246,9 @@
     const savedList = document.getElementById('savedList');
     const saveButton = document.getElementById('saveButton');
     const resetButton = document.getElementById('resetButton');
+    const aiCommentButton = document.getElementById('aiCommentButton');  
+    const aiStatus = document.getElementById('aiStatus');
+    const aiComment = document.getElementById('aiComment');
 
     const STORAGE_KEY = 'mind-body-heart-logs';
 
@@ -314,7 +332,129 @@
       const saved = localStorage.getItem(STORAGE_KEY);
       return saved ? JSON.parse(saved) : [];
     }
+    
+async function getAIComment() {
+  const logs = loadLogs();
 
+  if (logs.length === 0) {
+    aiComment.textContent = 'まだログがありません。';
+    return;
+  }
+
+  aiCommentButton.disabled = true;
+  aiStatus.textContent = 'LM Studioに聞いています……';
+  aiComment.textContent = '';
+
+  try {
+    // 直近5件
+    const recentLogs = logs.slice(0, 5).reverse();
+
+    const logText = recentLogs.map(log => {
+      return `
+日時: ${formatDate(log.createdAt)}
+体: ${log.body}
+脳: ${log.brain}
+心: ${log.heart}
+総合スコア: ${log.score}
+メモ: ${log.memo || 'なし'}
+`;
+    }).join('\n---\n');
+
+    const LM_STUDIO_URL = 'http://192.168.10.102:1234';
+
+    // LM Studioで現在使えるモデルを取得
+    const modelsResponse = await fetch(
+      `${LM_STUDIO_URL}/v1/models`
+    );
+
+    if (!modelsResponse.ok) {
+      throw new Error('モデル一覧を取得できませんでした');
+    }
+
+    const modelsData = await modelsResponse.json();
+
+    if (!modelsData.data || modelsData.data.length === 0) {
+      throw new Error('LM Studioに利用できるモデルがありません');
+    }
+
+    const modelId = modelsData.data[0].id;
+
+    console.log('使用するモデル:', modelId);
+    console.log('LM Studioへ送るログ:', logText);
+
+    const response = await fetch(
+      `${LM_STUDIO_URL}/v1/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify({
+          model: modelId,
+
+          messages: [
+            {
+              role: 'system',
+              content: `
+あなたは日々のコンディション記録を一緒に振り返るアシスタントです。
+
+体・脳・心はそれぞれ0〜100で記録されています。
+総合スコアは、体×脳×心の3乗根です。
+
+ログから読み取れる傾向を簡潔にコメントしてください。
+
+ルール：
+・診断や医学的判断はしない
+・数値が低いことを責めない
+・メモの内容も考慮する
+・変化や偏りがあれば指摘する
+・最後に、今日の過ごし方について軽い提案を1つする
+・200〜300文字程度
+              `
+            },
+            {
+              role: 'user',
+              content: `
+直近のログは以下です。
+
+${logText}
+
+この記録を見てコメントしてください。
+              `
+            }
+          ],
+
+          temperature: 0.7
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `LM Studioからエラーが返りました: ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    const comment =
+      data.choices?.[0]?.message?.content
+      || 'コメントを取得できませんでした。';
+
+    aiComment.textContent = comment;
+    aiStatus.textContent = '';
+
+  } catch (error) {
+    console.error(error);
+
+    aiStatus.textContent = '接続できませんでした。';
+    aiComment.textContent = error.message;
+
+  } finally {
+    aiCommentButton.disabled = false;
+  }
+}
     function saveLogs(logs) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
     }
@@ -401,11 +541,11 @@
     updateDisplay();
     renderLogs();
     renderChart();
-  </script>
-  <script>
+    
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js");
   }
+    aiCommentButton.addEventListener('click', getAIComment);
 </script>
 </body>
 </html>
